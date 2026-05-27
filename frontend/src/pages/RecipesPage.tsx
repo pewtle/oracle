@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Recipe } from '@/types';
-import { recipesApi, listsApi } from '@/api/client';
+import { recipesApi } from '@/api/client';
+import { addIngredientsToWeeklyList } from '@/utils/shoppingList';
 import RecipeForm from '@/components/Recipes/RecipeForm';
 
 export default function RecipesPage() {
@@ -55,14 +56,10 @@ export default function RecipesPage() {
     if (!selected || selected.ingredients.length === 0) return;
     setExporting(true);
     try {
-      const list = await listsApi.create({ name: `🍳 ${selected.title}` });
-      for (let i = 0; i < selected.ingredients.length; i++) {
-        await listsApi.addItem(list.id, {
-          text: selected.ingredients[i].text,
-          position: i,
-        });
-      }
-      localStorage.setItem('odysseus-last-list-id', String(list.id));
+      const listId = await addIngredientsToWeeklyList(
+        selected.ingredients.map(i => i.text)
+      );
+      localStorage.setItem('odysseus-last-list-id', String(listId));
       setExportDone(true);
       setTimeout(() => {
         setExportDone(false);
@@ -204,14 +201,14 @@ export default function RecipesPage() {
                     }`}
                   >
                     {exportDone ? (
-                      '✓ Added to list!'
+                      "✓ Added to This Week's Shopping!"
                     ) : (
                       <>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                             d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
-                        Add ingredients to shopping list
+                        Add to This Week's Shopping
                       </>
                     )}
                   </button>

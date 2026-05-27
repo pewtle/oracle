@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, KeyboardEvent } from 'react';
-import type { MealPlan } from '@/types';
+import type { MealPlan, Recipe } from '@/types';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner';
 
@@ -7,6 +7,7 @@ interface MealCellProps {
   meal?: MealPlan;
   date: string;
   mealType: MealType;
+  recipes: Recipe[];
   onSave: (description: string) => void;
   onDelete: () => void;
 }
@@ -17,36 +18,40 @@ const MEAL_ICONS: Record<MealType, string> = {
   dinner: '🌙',
 };
 
-export default function MealCell({ meal, mealType, onSave, onDelete }: MealCellProps) {
+export default function MealCell({ meal, mealType, recipes, onSave, onDelete }: MealCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(meal?.description ?? '');
+  const [recipeSearch, setRecipeSearch] = useState('');
+  const [mode, setMode] = useState<'recipe' | 'custom'>('recipe');
   const inputRef = useRef<HTMLInputElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
-  // Keep local input in sync if the meal prop changes (e.g. after a refetch)
   useEffect(() => {
-    if (!isEditing) {
-      setInputValue(meal?.description ?? '');
-    }
+    if (!isEditing) setInputValue(meal?.description ?? '');
   }, [meal, isEditing]);
 
-  // Auto-focus the input whenever we enter edit mode
   useEffect(() => {
     if (isEditing) {
-      inputRef.current?.focus();
-      inputRef.current?.select();
+      if (mode === 'custom') {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      } else {
+        searchRef.current?.focus();
+      }
     }
-  }, [isEditing]);
+  }, [isEditing, mode]);
 
   function handleStartEdit() {
     setInputValue(meal?.description ?? '');
+    setRecipeSearch('');
+    // Default to recipe picker if there are recipes, otherwise custom
+    setMode(recipes.length > 0 ? 'recipe' : 'custom');
     setIsEditing(true);
   }
 
   function handleSave() {
     const trimmed = inputValue.trim();
-    if (trimmed) {
-      onSave(trimmed);
-    }
+    if (trimmed) onSave(trimmed);
     setIsEditing(false);
   }
 
@@ -56,47 +61,132 @@ export default function MealCell({ meal, mealType, onSave, onDelete }: MealCellP
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter') {
-      handleSave();
-    } else if (e.key === 'Escape') {
-      handleCancel();
-    }
+    if (e.key === 'Enter') handleSave();
+    else if (e.key === 'Escape') handleCancel();
+  }
+
+  function handleSelectRecipe(recipe: Recipe) {
+    setInputValue(recipe.title);
+    setIsEditing(false);
+    onSave(recipe.title);
   }
 
   const icon = MEAL_ICONS[mealType];
+
+  const filteredRecipes = recipeSearch.trim()
+    ? recipes.filter(r =>
+        r.title.toLowerCase().includes(recipeSearch.toLowerCase()) ||
+        r.description?.toLowerCase().includes(recipeSearch.toLowerCase())
+      )
+    : recipes;
 
   // ------------------------------------------------------------------
   // Editing state
   // ------------------------------------------------------------------
   if (isEditing) {
     return (
-      <div className="relative min-h-[100px] xl:min-h-[130px] p-2 border border-primary-300 rounded-lg bg-white flex flex-col gap-1">
-        <span className="text-xs select-none">{icon}</span>
-        <input
-          ref={inputRef}
-          type="text"
-          value={inputValue}
-          onChange={e => setInputValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="What's for this meal?"
-          className="w-full border-0 focus:ring-0 text-sm p-1 bg-transparent outline-none text-gray-800 placeholder-gray-400 flex-1"
-        />
-        <div className="flex items-center gap-1 justify-end mt-auto">
-          <button
-            onClick={handleSave}
-            className="text-sm px-3 py-1.5 rounded bg-primary-500 text-white hover:bg-primary-600 transition-colors"
-            title="Save (Enter)"
-          >
-            Save
-          </button>
-          <button
-            onClick={handleCancel}
-            className="text-sm px-3 py-1.5 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
-            title="Cancel (Escape)"
-          >
-            ✕
-          </button>
+      <div className="relative min-h-[100px] xl:min-h-[130px] p-2 border border-primary-300 rounded-lg bg-white flex flex-col gap-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-xs select-none">{icon}</span>
+          {/* Mode tabs — only show if there are recipes */}
+          {recipes.length > 0 && (
+            <div className="flex gap-0.5 text-[10px] font-medium">
+              <button
+                type="button"
+                onClick={() => setMode('recipe')}
+                className={`px-2 py-0.5 rounded transition-colors ${
+                  mode === 'recipe'
+                    ? 'bg-primary-100 text-primary-700'
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                📖 Recipe
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMode('custom'); setTimeout(() => inputRef.current?.focus(), 0); }}
+                className={`px-2 py-0.5 rounded transition-colors ${
+                  mode === 'custom'
+                    ? 'bg-primary-100 text-primary-700'
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                ✏️ Custom
+              </button>
+            </div>
+          )}
         </div>
+
+        {mode === 'recipe' ? (
+          /* ---- Recipe picker ---- */
+          <div className="flex flex-col gap-1 flex-1">
+            <input
+              ref={searchRef}
+              type="text"
+              value={recipeSearch}
+              onChange={e => setRecipeSearch(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Escape') handleCancel(); }}
+              placeholder="Search recipes…"
+              className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-400"
+            />
+            <div className="flex-1 overflow-y-auto max-h-[120px] space-y-0.5">
+              {filteredRecipes.length === 0 ? (
+                <p className="text-[10px] text-gray-400 text-center py-2">
+                  {recipes.length === 0 ? 'No recipes yet — add some in the Recipes tab' : 'No matches'}
+                </p>
+              ) : (
+                filteredRecipes.map(r => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => handleSelectRecipe(r)}
+                    className="w-full text-left px-2 py-1 rounded text-xs hover:bg-primary-50 hover:text-primary-700 transition-colors truncate"
+                  >
+                    {r.title}
+                    {r.servings && (
+                      <span className="text-gray-400 ml-1">· serves {r.servings}</span>
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="text-xs text-gray-400 hover:text-gray-600 mt-auto text-center"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          /* ---- Custom text ---- */
+          <>
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputValue}
+              onChange={e => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="What's for this meal?"
+              className="w-full border-0 focus:ring-0 text-sm p-1 bg-transparent outline-none text-gray-800 placeholder-gray-400 flex-1"
+            />
+            <div className="flex items-center gap-1 justify-end mt-auto">
+              <button
+                onClick={handleSave}
+                className="text-sm px-3 py-1.5 rounded bg-primary-500 text-white hover:bg-primary-600 transition-colors"
+              >
+                Save
+              </button>
+              <button
+                onClick={handleCancel}
+                className="text-sm px-3 py-1.5 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+          </>
+        )}
+
         {meal && (
           <button
             type="button"
@@ -111,7 +201,7 @@ export default function MealCell({ meal, mealType, onSave, onDelete }: MealCellP
   }
 
   // ------------------------------------------------------------------
-  // Filled state (meal exists)
+  // Filled state
   // ------------------------------------------------------------------
   if (meal) {
     return (

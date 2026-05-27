@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, listsApi } from '@/api/client';
-import type { MealPlan, MealPlanCreate } from '@/types';
+import { api, recipesApi } from '@/api/client';
+import type { MealPlan, MealPlanCreate, Recipe } from '@/types';
+import { addIngredientsToWeeklyList } from '@/utils/shoppingList';
 import MealCell from './MealCell';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner';
@@ -71,6 +72,7 @@ export default function WeeklyMealPlanner() {
   const navigate = useNavigate();
   const [weekStart, setWeekStart] = useState<Date>(() => getMonday(new Date()));
   const [meals, setMeals] = useState<MealPlan[]>([]);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -106,6 +108,11 @@ export default function WeeklyMealPlanner() {
   useEffect(() => {
     fetchMeals();
   }, [fetchMeals]);
+
+  // Fetch recipes once on mount (used by the meal cell picker)
+  useEffect(() => {
+    recipesApi.getAll().then(setRecipes).catch(() => {});
+  }, []);
 
   // ------------------------------------------------------------------
   // Lookup helper: find the meal for a specific day + type
@@ -145,7 +152,8 @@ export default function WeeklyMealPlanner() {
   }
 
   // ------------------------------------------------------------------
-  // Export meals to a new shopping list
+  // Export meals to the shared "This Week's Shopping" list.
+  // Meals are added as plain text items (not ingredients, just meal names).
   // ------------------------------------------------------------------
   async function handleExportToList() {
     if (meals.length === 0) {
@@ -155,9 +163,6 @@ export default function WeeklyMealPlanner() {
     setExporting(true);
     setError(null);
     try {
-      const listName = `Meals — ${formatDayDate(weekStart)} to ${formatDayDate(addDays(weekStart, 6))}`;
-      const newList = await listsApi.create({ name: listName, colour: '#10b981' });
-
       // Sort meals: by date, then breakfast → lunch → dinner
       const sorted = [...meals].sort((a, b) => {
         const dateDiff = a.date.localeCompare(b.date);
@@ -165,19 +170,16 @@ export default function WeeklyMealPlanner() {
         return MEAL_TYPE_ORDER[a.meal_type as MealType] - MEAL_TYPE_ORDER[b.meal_type as MealType];
       });
 
-      // Add each meal as a list item: "Mon · Breakfast — Porridge"
-      await Promise.all(
-        sorted.map((meal, i) => {
-          const day = new Date(meal.date + 'T00:00:00');
-          const dayLabel = day.toLocaleDateString('en-GB', { weekday: 'short' });
-          const typeLabel = meal.meal_type.charAt(0).toUpperCase() + meal.meal_type.slice(1);
-          const text = `${dayLabel} · ${typeLabel} — ${meal.description}`;
-          return listsApi.addItem(newList.id, { text, checked: false, position: i });
-        })
-      );
+      // Format each meal as "Mon · Breakfast — Porridge"
+      const items = sorted.map(meal => {
+        const day = new Date(meal.date + 'T00:00:00');
+        const dayLabel = day.toLocaleDateString('en-GB', { weekday: 'short' });
+        const typeLabel = meal.meal_type.charAt(0).toUpperCase() + meal.meal_type.slice(1);
+        return `${dayLabel} · ${typeLabel} — ${meal.description}`;
+      });
 
-      // Auto-select the new list when navigating to /lists
-      localStorage.setItem('odysseus-last-list-id', String(newList.id));
+      const listId = await addIngredientsToWeeklyList(items);
+      localStorage.setItem('odysseus-last-list-id', String(listId));
 
       setExportDone(true);
       setTimeout(() => {
@@ -185,7 +187,7 @@ export default function WeeklyMealPlanner() {
         navigate('/lists');
       }, 800);
     } catch {
-      setError('Failed to create shopping list. Please try again.');
+      setError('Failed to update shopping list. Please try again.');
     } finally {
       setExporting(false);
     }
@@ -251,7 +253,7 @@ export default function WeeklyMealPlanner() {
                 ? 'border-gray-200 text-gray-300 cursor-not-allowed'
                 : 'border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
             }`}
-            title={meals.length === 0 ? 'No meals planned this week' : 'Create a shopping list from this week\'s meals'}
+            title={meals.length === 0 ? 'No meals planned this week' : "Add meals to This Week's Shopping list"}
           >
             {exportDone ? '✓ Added!' : exporting ? 'Creating…' : (
               <>
@@ -338,6 +340,7 @@ export default function WeeklyMealPlanner() {
                         meal={meal}
                         date={toISODate(day)}
                         mealType={mealType}
+                        recipes={recipes}
                         onSave={description => handleSave(day, mealType, description)}
                         onDelete={() => meal && handleDelete(meal)}
                       />
