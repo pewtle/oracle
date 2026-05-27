@@ -1,0 +1,40 @@
+# Odysseus Family Planner — systemd unit file
+#
+# INSTALLATION
+#   sudo cp deploy/odysseus.service /etc/systemd/system/odysseus.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable skylight
+#   sudo systemctl start skylight
+#
+# CUSTOMISING THE INSTALL PATH
+#   If you installed to a directory other than /home/pi/skylight, replace every
+#   occurrence of /home/pi/skylight below with your actual path, then re-run
+#   `sudo systemctl daemon-reload`.
+#
+#   The setup-pi.sh script does this substitution automatically with sed.
+
+[Unit]
+Description=Odysseus Family Planner
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+
+# --- Edit these three paths if your install directory differs ---
+WorkingDirectory=/home/pi/skylight/backend
+EnvironmentFile=-/home/pi/skylight/backend/.env
+ExecStart=/home/pi/skylight/venv/bin/python run.py
+# ---------------------------------------------------------------
+
+Restart=always
+RestartSec=5
+
+# Log everything to the systemd journal.
+# View with: sudo journalctl -u skylight -f
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

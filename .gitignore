@@ -1,0 +1,69 @@
+# ---------------------------------------------------------------------------
+# Python / Backend
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+venv/
+.venv/
+env/
+ENV/
+pip-log.txt
+
+# Environment files — NEVER commit secrets
+backend/.env
+.env
+*.env
+
+# SQLite database
+backend/data/skylight.db
+backend/data/*.db
+
+# Logs
+*.log
+*.log.err
+
+# ---------------------------------------------------------------------------
+# Frontend / Node
+# ---------------------------------------------------------------------------
+node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+.npm
+
+# ---------------------------------------------------------------------------
+# Photos (user content — not for version control)
+# ---------------------------------------------------------------------------
+backend/data/photos/
+
+# ---------------------------------------------------------------------------
+# OS / Editor
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ---------------------------------------------------------------------------
+# Claude Code internal
+# ---------------------------------------------------------------------------
+.claude/
+
+# ---------------------------------------------------------------------------
+# Requirements / design docs (keep README but skip heavy binaries)
+# ---------------------------------------------------------------------------
+*.docx
+requirements_data.json

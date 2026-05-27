@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  body {
+    @apply bg-surface text-slate-900;
+  }
+}
+
+@layer utilities {
+  @keyframes pulse-border {
+    0%, 100% { box-shadow: 0 0 0 2px #fca5a5, 0 4px 6px -1px rgba(0,0,0,0.1); }
+    50%       { box-shadow: 0 0 0 4px #ef4444, 0 4px 6px -1px rgba(0,0,0,0.1); }
+  }
+  .animate-pulse-border {
+    animation: pulse-border 2s ease-in-out infinite;
+  }
+}
+
+@layer components {
+  /* Reusable card style */
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-slate-100 p-4;
+  }
+
+  /* Sidebar nav item */
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-white/10 hover:text-white transition-colors duration-150 cursor-pointer;
+  }
+
+  .nav-item.active {
+    @apply bg-primary-500 text-white;
+  }
+}
