@@ -27,7 +27,11 @@ router = APIRouter()
 # ---------------------------------------------------------------------------
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
-REDIRECT_URI = "http://localhost:8000/api/google-calendar/callback"
+
+# APP_URL should match whatever URL the Pi is accessed at, e.g. http://odysseus.local
+# Defaults to localhost for local dev.
+APP_URL = os.getenv("APP_URL", "http://localhost:8000").rstrip("/")
+REDIRECT_URI = f"{APP_URL}/api/google-calendar/callback"
 
 
 def _get_flow(state: str | None = None):
@@ -351,11 +355,11 @@ def oauth_callback(code: str, state: str, db: Session = Depends(get_db)):
     try:
         profile_id = int(state)
     except (ValueError, TypeError):
-        return RedirectResponse("/?google_auth=error&reason=invalid_state")
+        return RedirectResponse("/settings?google_auth=error&reason=invalid_state")
 
     profile = db.query(Profile).filter(Profile.id == profile_id).first()
     if not profile:
-        return RedirectResponse("/?google_auth=error&reason=profile_not_found")
+        return RedirectResponse("/settings?google_auth=error&reason=profile_not_found")
 
     try:
         flow = _get_flow(state=state)
@@ -374,12 +378,12 @@ def oauth_callback(code: str, state: str, db: Session = Depends(get_db)):
         db.commit()
 
     except HTTPException:
-        return RedirectResponse("/?google_auth=error&reason=not_configured")
+        return RedirectResponse("/settings?google_auth=error&reason=not_configured")
     except Exception as exc:
         logger.error("OAuth callback error for profile %d: %s", profile_id, exc)
-        return RedirectResponse(f"/?google_auth=error&reason=token_exchange_failed")
+        return RedirectResponse("/settings?google_auth=error&reason=token_exchange_failed")
 
-    return RedirectResponse("/?google_auth=success")
+    return RedirectResponse("/settings?google_auth=success")
 
 
 @router.get("/status/{profile_id}")

@@ -116,6 +116,26 @@ export const mealsApi = {
 // Lists
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
+// Google Calendar
+// ---------------------------------------------------------------------------
+export const googleCalendarApi = {
+  getAuthUrl: (profileId: number) =>
+    api.get<{ auth_url: string }>(`/google-calendar/auth/${profileId}`).then(r => r.data),
+  getStatus: (profileId: number) =>
+    api.get<{ connected: boolean; calendar_id: string | null; last_sync: string | null }>(
+      `/google-calendar/status/${profileId}`
+    ).then(r => r.data),
+  sync: (profileId: number) =>
+    api.post<{ synced_events: number; pushed_events: number }>(
+      `/google-calendar/sync/${profileId}`
+    ).then(r => r.data),
+  disconnect: (profileId: number) =>
+    api.delete<{ disconnected: boolean; deleted_events: number }>(
+      `/google-calendar/disconnect/${profileId}`
+    ).then(r => r.data),
+};
+
+// ---------------------------------------------------------------------------
 // Recipes
 // ---------------------------------------------------------------------------
 export const recipesApi = {
