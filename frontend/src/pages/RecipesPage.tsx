@@ -10,6 +10,8 @@ export default function RecipesPage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Recipe | null>(null);
+  // On narrow screens (< lg) we toggle between the list panel and the detail panel
+  const [showDetail, setShowDetail] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editRecipe, setEditRecipe] = useState<Recipe | undefined>(undefined);
   const [exporting, setExporting] = useState(false);
@@ -33,11 +35,16 @@ export default function RecipesPage() {
 
   useEffect(() => { fetchRecipes(); }, []); // eslint-disable-line
 
+  function selectRecipe(recipe: Recipe) {
+    setSelected(recipe);
+    setShowDetail(true);
+  }
+
   const handleSaved = (recipe: Recipe) => {
     setShowForm(false);
     setEditRecipe(undefined);
     fetchRecipes();
-    setSelected(recipe);
+    selectRecipe(recipe);
   };
 
   const handleDelete = async (id: number) => {
@@ -76,10 +83,26 @@ export default function RecipesPage() {
       )
     : recipes;
 
+  // On lg+ both panels are always visible.
+  // Below lg only one panel is shown at a time: list (default) or detail.
+  const listVisible = !showDetail;   // only relevant < lg
+  const detailVisible = showDetail;  // only relevant < lg
+
   return (
     <div className="flex flex-col h-full">
+      {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold text-gray-800">🍳 Recipe Book</h1>
+        {/* Back button — only on narrow screens when viewing a recipe */}
+        {detailVisible ? (
+          <button
+            onClick={() => setShowDetail(false)}
+            className="lg:hidden flex items-center gap-1.5 text-sm text-primary-600 font-medium"
+          >
+            ← Recipes
+          </button>
+        ) : (
+          <h1 className="text-xl font-bold text-gray-800">🍳 Recipe Book</h1>
+        )}
         <button
           onClick={() => { setEditRecipe(undefined); setShowForm(true); }}
           className="flex items-center gap-1.5 px-3 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
@@ -92,8 +115,8 @@ export default function RecipesPage() {
       </div>
 
       <div className="flex flex-1 min-h-0 gap-4">
-        {/* Left: recipe list */}
-        <div className="w-72 flex-shrink-0 flex flex-col min-h-0">
+        {/* Left: recipe list — hidden on narrow screens when viewing a recipe */}
+        <div className={`${listVisible ? 'flex' : 'hidden'} lg:flex w-full lg:w-64 xl:w-72 flex-shrink-0 flex-col min-h-0`}>
           <input
             type="text"
             value={search}
@@ -115,7 +138,7 @@ export default function RecipesPage() {
               filtered.map((r) => (
                 <button
                   key={r.id}
-                  onClick={() => setSelected(r)}
+                  onClick={() => selectRecipe(r)}
                   className={`w-full text-left px-3 py-3 rounded-lg transition-colors border ${
                     selected?.id === r.id
                       ? 'bg-primary-50 border-primary-200 text-primary-800'
@@ -136,8 +159,8 @@ export default function RecipesPage() {
           </div>
         </div>
 
-        {/* Right: recipe detail */}
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        {/* Right: recipe detail — hidden on narrow screens when on list */}
+        <div className={`${detailVisible ? 'flex' : 'hidden'} lg:flex flex-col flex-1 min-h-0 overflow-y-auto`}>
           {!selected ? (
             <div className="h-full flex flex-col items-center justify-center text-center text-gray-400">
               <p className="text-5xl mb-3">📖</p>

@@ -67,13 +67,21 @@ const RecipesIcon = () => (
   </svg>
 );
 
+const RoutinesIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
 const navLinks = [
-  { to: '/',         label: 'Today',    icon: <HomeIcon />     },
-  { to: '/calendar', label: 'Calendar', icon: <CalendarIcon /> },
-  { to: '/meals',    label: 'Meals',    icon: <MealsIcon />    },
-  { to: '/recipes',  label: 'Recipes',  icon: <RecipesIcon />  },
-  { to: '/lists',    label: 'Lists',    icon: <ListsIcon />    },
-  { to: '/tasks',    label: 'Tasks',    icon: <TasksIcon />    },
+  { to: '/',          label: 'Today',    icon: <HomeIcon />     },
+  { to: '/calendar',  label: 'Calendar', icon: <CalendarIcon /> },
+  { to: '/routines',  label: 'Routines', icon: <RoutinesIcon /> },
+  { to: '/meals',     label: 'Meals',    icon: <MealsIcon />    },
+  { to: '/recipes',   label: 'Recipes',  icon: <RecipesIcon />  },
+  { to: '/lists',     label: 'Lists',    icon: <ListsIcon />    },
+  { to: '/tasks',     label: 'Tasks',    icon: <TasksIcon />    },
 ];
 
 // ---------------------------------------------------------------------------

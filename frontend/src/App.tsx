@@ -9,6 +9,7 @@ import MealPlannerPage from './pages/MealPlannerPage';
 import ListsPage from './pages/ListsPage';
 import SettingsPage from './pages/SettingsPage';
 import RecipesPage from './pages/RecipesPage';
+import RoutinesPage from './pages/RoutinesPage';
 import ScreensaverPage from './pages/ScreensaverPage';
 
 export default function App() {
@@ -27,8 +28,9 @@ export default function App() {
             <Route path="/tasks"    element={<TasksPage />}        />
             <Route path="/meals"    element={<MealPlannerPage />}  />
             <Route path="/lists"    element={<ListsPage />}        />
-            <Route path="/recipes"  element={<RecipesPage />}      />
-            <Route path="/settings" element={<SettingsPage />}     />
+            <Route path="/recipes"   element={<RecipesPage />}   />
+            <Route path="/routines"  element={<RoutinesPage />}  />
+            <Route path="/settings"  element={<SettingsPage />}  />
           </Route>
         </Routes>
       </ProfileProvider>

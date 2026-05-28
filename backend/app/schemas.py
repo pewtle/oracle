@@ -207,3 +207,61 @@ class RecipeResponse(BaseModel):
     notes: Optional[str] = None
     created_at: datetime
     ingredients: List[RecipeIngredientResponse] = []
+
+
+# ---------------------------------------------------------------------------
+# Routines
+# ---------------------------------------------------------------------------
+class RoutineItemCreate(BaseModel):
+    text: str
+    position: int = 0
+
+
+class RoutineItemUpdate(BaseModel):
+    text: Optional[str] = None
+    position: Optional[int] = None
+
+
+class RoutineItemResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    routine_id: int
+    text: str
+    position: int
+    created_at: datetime
+
+
+class RoutineItemTodayResponse(BaseModel):
+    id: int
+    routine_id: int
+    text: str
+    position: int
+    completed_today: bool
+
+
+class RoutineStreakInfo(BaseModel):
+    current_streak: int = 0
+    longest_streak: int = 0
+    last_complete_date: Optional[date] = None
+
+
+class RoutineSlotResponse(BaseModel):
+    slot: str
+    routine_id: int
+    items: List[RoutineItemTodayResponse]
+    streak: RoutineStreakInfo
+    slot_complete: bool
+    history: List[bool]
+
+
+class RoutineTodayResponse(BaseModel):
+    date: str
+    slots: List[RoutineSlotResponse]
+    perfect_day: bool
+
+
+class RoutineToggleResponse(BaseModel):
+    item_id: int
+    completed: bool
+    slot_complete: bool

@@ -143,3 +143,43 @@ export interface ListItemCreate {
   checked?: boolean;
   position?: number;
 }
+
+// ---------------------------------------------------------------------------
+// Routines
+// ---------------------------------------------------------------------------
+
+export interface RoutineItem {
+  id: number;
+  routine_id: number;
+  text: string;
+  position: number;
+  completed_today: boolean;
+}
+
+export interface RoutineStreakInfo {
+  current_streak: number;
+  longest_streak: number;
+  last_complete_date: string | null;
+}
+
+export type RoutineSlot = 'morning' | 'evening' | 'bedtime';
+
+export interface RoutineSlotData {
+  slot: RoutineSlot;
+  routine_id: number;
+  items: RoutineItem[];
+  streak: RoutineStreakInfo;
+  slot_complete: boolean;
+  history: boolean[];
+}
+
+export interface RoutineToday {
+  date: string;
+  slots: RoutineSlotData[];
+  perfect_day: boolean;
+}
+
+export interface RoutineItemCreate {
+  text: string;
+  position?: number;
+}

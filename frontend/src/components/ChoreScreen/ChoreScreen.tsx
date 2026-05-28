@@ -89,13 +89,13 @@ export default function ChoreScreen() {
 
       {/* Page heading */}
       <div className="px-6 pt-6 pb-2">
-        <h1 className="text-4xl font-bold text-slate-800">✅ Chores</h1>
+        <h1 className="text-4xl font-bold text-slate-800">✅ Tasks</h1>
         {!loading && (
           <>
             <p className="text-2xl text-slate-500 mt-1">
               {activeTasks.length === 0
-                ? 'All chores complete!'
-                : `${activeTasks.length} chore${activeTasks.length !== 1 ? 's' : ''} remaining`}
+                ? 'All tasks complete!'
+                : `${activeTasks.length} task${activeTasks.length !== 1 ? 's' : ''} remaining`}
             </p>
             {totalTasks > 0 && (
               <div className="mt-3 w-full max-w-sm">
@@ -145,7 +145,7 @@ export default function ChoreScreen() {
           /* No tasks at all */
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="text-6xl mb-4">📋</div>
-            <h2 className="text-3xl font-bold text-slate-600 mb-2">No chores yet!</h2>
+            <h2 className="text-3xl font-bold text-slate-600 mb-2">No tasks yet!</h2>
             <p className="text-xl text-slate-400">
               Add tasks in the Task Manager to see them here.
             </p>
@@ -179,12 +179,12 @@ export default function ChoreScreen() {
                       {profile.name}
                     </h2>
                     <span className="text-lg text-slate-400 font-medium">
-                      {profileActiveTasks.length} chore{profileActiveTasks.length !== 1 ? 's' : ''}
+                      {profileActiveTasks.length} task{profileActiveTasks.length !== 1 ? 's' : ''}
                     </span>
                   </div>
 
                   {/* Chore cards grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                     {profileActiveTasks.map((task) => (
                       <ChoreCard
                         key={task.id}

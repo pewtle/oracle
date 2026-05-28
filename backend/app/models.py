@@ -136,6 +136,74 @@ class RecipeIngredient(Base):
 
 
 # ---------------------------------------------------------------------------
+# Routines — morning / evening / bedtime checklists with streaks
+# ---------------------------------------------------------------------------
+class Routine(Base):
+    __tablename__ = "routines"
+
+    id: int = Column(Integer, primary_key=True, autoincrement=True)
+    slot: str = Column(String, nullable=False)  # "morning" | "evening" | "bedtime"
+    created_at: datetime = Column(DateTime, default=func.now())
+
+    items = relationship(
+        "RoutineItem",
+        back_populates="routine",
+        cascade="all, delete-orphan",
+        order_by="RoutineItem.position",
+    )
+    streak = relationship(
+        "RoutineStreak",
+        uselist=False,
+        back_populates="routine",
+        cascade="all, delete-orphan",
+    )
+
+
+class RoutineItem(Base):
+    __tablename__ = "routine_items"
+
+    id: int = Column(Integer, primary_key=True, autoincrement=True)
+    routine_id: int = Column(Integer, ForeignKey("routines.id", ondelete="CASCADE"), nullable=False)
+    text: str = Column(String, nullable=False)
+    position: int = Column(Integer, default=0)
+    created_at: datetime = Column(DateTime, default=func.now())
+
+    routine = relationship("Routine", back_populates="items")
+    completions = relationship(
+        "RoutineCompletion",
+        back_populates="item",
+        cascade="all, delete-orphan",
+    )
+
+
+class RoutineCompletion(Base):
+    __tablename__ = "routine_completions"
+
+    id: int = Column(Integer, primary_key=True, autoincrement=True)
+    item_id: int = Column(Integer, ForeignKey("routine_items.id", ondelete="CASCADE"), nullable=False)
+    completion_date: date = Column(Date, nullable=False)
+    created_at: datetime = Column(DateTime, default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("item_id", "completion_date", name="uq_completion_item_date"),
+    )
+
+    item = relationship("RoutineItem", back_populates="completions")
+
+
+class RoutineStreak(Base):
+    __tablename__ = "routine_streaks"
+
+    id: int = Column(Integer, primary_key=True, autoincrement=True)
+    routine_id: int = Column(Integer, ForeignKey("routines.id", ondelete="CASCADE"), nullable=False, unique=True)
+    current_streak: int = Column(Integer, default=0)
+    longest_streak: int = Column(Integer, default=0)
+    last_complete_date: date | None = Column(Date, nullable=True)
+
+    routine = relationship("Routine", back_populates="streak")
+
+
+# ---------------------------------------------------------------------------
 # MealPlan — a meal entry for a specific date and meal slot
 # ---------------------------------------------------------------------------
 class MealPlan(Base):

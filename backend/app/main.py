@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.database import init_db
-from app.routers import profiles, events, tasks, meals, lists, google_calendar, photos, recipes
+from app.routers import profiles, events, tasks, meals, lists, google_calendar, photos, recipes, routines
 from app.sync_service import sync_service
 
 
@@ -53,6 +53,7 @@ app.include_router(lists.router, prefix="/api/lists", tags=["lists"])
 app.include_router(google_calendar.router, prefix="/api/google-calendar", tags=["google-calendar"])
 app.include_router(photos.router, prefix="/api/photos", tags=["photos"])
 app.include_router(recipes.router, prefix="/api/recipes", tags=["recipes"])
+app.include_router(routines.router, prefix="/api/routines", tags=["routines"])
 
 
 # ---------------------------------------------------------------------------

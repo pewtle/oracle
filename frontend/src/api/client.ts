@@ -136,6 +136,24 @@ export const googleCalendarApi = {
 };
 
 // ---------------------------------------------------------------------------
+// Routines
+// ---------------------------------------------------------------------------
+export const routinesApi = {
+  getToday: () =>
+    api.get<import('../types').RoutineToday>('/routines/today').then(r => r.data),
+  toggleItem: (itemId: number) =>
+    api.post<{ item_id: number; completed: boolean; slot_complete: boolean }>(
+      `/routines/items/${itemId}/toggle`
+    ).then(r => r.data),
+  addItem: (routineId: number, data: import('../types').RoutineItemCreate) =>
+    api.post(`/routines/${routineId}/items`, data).then(r => r.data),
+  updateItem: (itemId: number, data: { text?: string; position?: number }) =>
+    api.patch(`/routines/items/${itemId}`, data).then(r => r.data),
+  deleteItem: (itemId: number) =>
+    api.delete(`/routines/items/${itemId}`).then(r => r.data),
+};
+
+// ---------------------------------------------------------------------------
 // Recipes
 // ---------------------------------------------------------------------------
 export const recipesApi = {

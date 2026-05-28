@@ -65,13 +65,6 @@ export default function ListsPage() {
   }, [lists]);
 
   // -------------------------------------------------------------------------
-  // Select a list and persist to localStorage
-  // -------------------------------------------------------------------------
-  function handleSelect(list: CustomList) {
-    setSelectedList(list);
-    localStorage.setItem('odysseus-last-list-id', String(list.id));
-  }
-
   // -------------------------------------------------------------------------
   // Callbacks from sidebar
   // -------------------------------------------------------------------------
@@ -97,32 +90,55 @@ export default function ListsPage() {
     fetchLists();
   }
 
+  // On lg+ both panels always visible; below lg toggle between list and detail
+  const [showDetail, setShowDetail] = useState(false);
+
+  function handleSelect(list: CustomList) {
+    setSelectedList(list);
+    localStorage.setItem('odysseus-last-list-id', String(list.id));
+    setShowDetail(true);
+  }
+
   // -------------------------------------------------------------------------
   // Render
   // -------------------------------------------------------------------------
+  const sidebarVisible = !showDetail;  // only matters < lg
+
   return (
-    <div className="flex h-full min-h-0 overflow-hidden" style={{ height: 'calc(100vh - 4rem)' }}>
-      {/* Left sidebar */}
-      {loading ? (
-        <aside className="w-60 flex-shrink-0 bg-gray-50 border-r border-gray-100 flex items-center justify-center">
-          <div className="w-6 h-6 border-4 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
-        </aside>
-      ) : error ? (
-        <aside className="w-60 flex-shrink-0 bg-gray-50 border-r border-gray-100 flex items-center justify-center px-4">
-          <p className="text-xs text-red-500 text-center">{error}</p>
-        </aside>
-      ) : (
-        <ListsSidebar
-          lists={lists}
-          selectedListId={selectedList?.id ?? null}
-          onSelect={handleSelect}
-          onDeleted={handleDeleted}
-          onCreated={handleCreated}
-        />
+    <div className="flex h-full min-h-0 overflow-hidden">
+      {/* Header bar — only on narrow screens when viewing a list */}
+      {showDetail && (
+        <button
+          onClick={() => setShowDetail(false)}
+          className="lg:hidden absolute top-4 left-4 z-10 flex items-center gap-1.5 text-sm text-primary-600 font-medium bg-white px-3 py-1.5 rounded-lg shadow-sm border border-gray-100"
+        >
+          ← Lists
+        </button>
       )}
 
+      {/* Left sidebar */}
+      <div className={`${sidebarVisible ? 'flex' : 'hidden'} lg:flex flex-col w-full lg:w-56 xl:w-60 flex-shrink-0`}>
+        {loading ? (
+          <aside className="flex-1 bg-gray-50 border-r border-gray-100 flex items-center justify-center">
+            <div className="w-6 h-6 border-4 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
+          </aside>
+        ) : error ? (
+          <aside className="flex-1 bg-gray-50 border-r border-gray-100 flex items-center justify-center px-4">
+            <p className="text-xs text-red-500 text-center">{error}</p>
+          </aside>
+        ) : (
+          <ListsSidebar
+            lists={lists}
+            selectedListId={selectedList?.id ?? null}
+            onSelect={handleSelect}
+            onDeleted={handleDeleted}
+            onCreated={handleCreated}
+          />
+        )}
+      </div>
+
       {/* Right panel */}
-      <main className="flex-1 overflow-y-auto">
+      <main className={`${showDetail ? 'flex' : 'hidden'} lg:flex flex-col flex-1 overflow-y-auto pt-10 lg:pt-0`}>
         {selectedList ? (
           <ListDetail
             key={selectedList.id}

@@ -87,7 +87,7 @@ export default function ListsSidebar({
   }
 
   return (
-    <aside className="w-60 flex-shrink-0 bg-gray-50 border-r border-gray-100 flex flex-col h-full">
+    <aside className="w-full lg:w-56 xl:w-60 flex-shrink-0 bg-gray-50 border-r border-gray-100 flex flex-col h-full">
       {/* Header */}
       <div className="px-4 pt-5 pb-3 flex items-center justify-between">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">My Lists</h2>

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { api } from '@/api/client';
+import { api, routinesApi } from '@/api/client';
 import { useProfiles } from '@/contexts/ProfileContext';
-import type { CalendarEvent, MealPlan, Task } from '@/types';
+import type { CalendarEvent, MealPlan, Task, RoutineToday, RoutineSlotData } from '@/types';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -217,7 +217,282 @@ function MealsCard() {
 }
 
 // ---------------------------------------------------------------------------
-// Card 3 — Chores
+// Routines strip — time-aware progress summary
+// ---------------------------------------------------------------------------
+
+type RoutineSlotKey = 'morning' | 'evening' | 'bedtime';
+
+const SLOT_THEME: Record<RoutineSlotKey, {
+  emoji: string;
+  label: string;
+  trackColor: string;
+  arcColor: string;
+  bg: string;
+  labelColor: string;
+}> = {
+  morning: {
+    emoji: '🌅',
+    label: 'Morning',
+    trackColor: '#fef3c7',
+    arcColor: '#f59e0b',
+    bg: 'bg-amber-50',
+    labelColor: 'text-amber-800',
+  },
+  evening: {
+    emoji: '🌆',
+    label: 'Evening',
+    trackColor: '#dbeafe',
+    arcColor: '#3b82f6',
+    bg: 'bg-blue-50',
+    labelColor: 'text-blue-800',
+  },
+  bedtime: {
+    emoji: '🌙',
+    label: 'Bedtime',
+    trackColor: '#ede9fe',
+    arcColor: '#8b5cf6',
+    bg: 'bg-violet-50',
+    labelColor: 'text-violet-800',
+  },
+};
+
+function getRelevantSlots(hour: number): RoutineSlotKey[] {
+  if (hour < 12) return ['morning'];
+  if (hour < 19) return ['morning', 'evening'];
+  return ['evening', 'bedtime'];
+}
+
+function ProgressRing({
+  value,
+  max,
+  arcColor,
+  trackColor,
+  size = 72,
+  stroke = 7,
+}: {
+  value: number;
+  max: number;
+  arcColor: string;
+  trackColor: string;
+  size?: number;
+  stroke?: number;
+}) {
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const pct = max > 0 ? Math.min(value / max, 1) : 0;
+  const offset = circ * (1 - pct);
+  const complete = max > 0 && value >= max;
+
+  return (
+    <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+      <svg
+        width={size}
+        height={size}
+        style={{ transform: 'rotate(-90deg)' }}
+      >
+        {/* Track */}
+        <circle cx={size / 2} cy={size / 2} r={r}
+          fill="none" stroke={trackColor} strokeWidth={stroke} />
+        {/* Arc */}
+        <circle cx={size / 2} cy={size / 2} r={r}
+          fill="none"
+          stroke={complete ? '#22c55e' : arcColor}
+          strokeWidth={stroke}
+          strokeDasharray={circ}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          style={{ transition: 'stroke-dashoffset 0.6s ease, stroke 0.4s ease' }}
+        />
+      </svg>
+      {/* Centre label */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        {complete ? (
+          <span className="text-green-500 text-xl leading-none">✓</span>
+        ) : (
+          <span className="text-xs font-bold text-gray-600 leading-none">
+            {max === 0 ? '—' : `${value}/${max}`}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SlotTile({ slot }: { slot: RoutineSlotData }) {
+  const theme = SLOT_THEME[slot.slot as RoutineSlotKey];
+  const completed = slot.items.filter((i) => i.completed_today).length;
+  const total = slot.items.length;
+  // Next incomplete item name
+  const nextItem = slot.items.find((i) => !i.completed_today);
+
+  return (
+    <Link
+      to="/routines"
+      className={`flex items-center gap-4 ${theme.bg} rounded-xl px-4 py-3 hover:opacity-90 transition-opacity`}
+    >
+      <ProgressRing
+        value={completed}
+        max={total}
+        arcColor={theme.arcColor}
+        trackColor={theme.trackColor}
+      />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <span className="text-base leading-none">{theme.emoji}</span>
+          <span className={`font-semibold text-sm ${theme.labelColor}`}>{theme.label}</span>
+          {slot.streak.current_streak > 0 && (
+            <span className="text-xs font-medium text-orange-500">
+              🔥 {slot.streak.current_streak}
+            </span>
+          )}
+        </div>
+        {total === 0 ? (
+          <p className="text-xs text-gray-400">No items added</p>
+        ) : slot.slot_complete ? (
+          <p className="text-xs font-semibold text-green-600">All done! 🎉</p>
+        ) : (
+          <>
+            <p className="text-xs text-gray-500">
+              {completed} of {total} complete
+            </p>
+            {nextItem && (
+              <p className="text-xs text-gray-400 truncate mt-0.5">
+                Next: {nextItem.text}
+              </p>
+            )}
+          </>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+function RoutinesStrip() {
+  const [data, setData] = useState<RoutineToday | null>(null);
+  const [loading, setLoading] = useState(true);
+  const hour = new Date().getHours();
+  const slotsToShow = getRelevantSlots(hour);
+
+  useEffect(() => {
+    routinesApi.getToday()
+      .then(setData)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const relevantSlots = slotsToShow
+    .map((name) => data?.slots.find((s) => s.slot === name))
+    .filter((s): s is RoutineSlotData => Boolean(s));
+
+  return (
+    <Card>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-semibold text-slate-700">Routines</h2>
+        <Link
+          to="/routines"
+          className="text-xs text-primary-600 hover:text-primary-700 font-medium"
+        >
+          View all →
+        </Link>
+      </div>
+
+      {loading ? (
+        <SkeletonLines count={2} />
+      ) : (
+        <div className={`grid gap-3 ${relevantSlots.length === 1 ? 'grid-cols-1 max-w-sm' : 'grid-cols-1 sm:grid-cols-2'}`}>
+          {relevantSlots.map((slot) => (
+            <SlotTile key={slot.slot} slot={slot} />
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Weather widget — Open-Meteo, no API key, Macclesfield UK
+// ---------------------------------------------------------------------------
+
+const WMO: Record<number, { emoji: string; label: string }> = {
+  0:  { emoji: '☀️',  label: 'Clear sky'        },
+  1:  { emoji: '🌤️', label: 'Mainly clear'      },
+  2:  { emoji: '⛅',  label: 'Partly cloudy'     },
+  3:  { emoji: '☁️',  label: 'Overcast'          },
+  45: { emoji: '🌫️', label: 'Fog'               },
+  48: { emoji: '🌫️', label: 'Icy fog'           },
+  51: { emoji: '🌦️', label: 'Light drizzle'     },
+  53: { emoji: '🌦️', label: 'Drizzle'           },
+  55: { emoji: '🌧️', label: 'Heavy drizzle'     },
+  61: { emoji: '🌧️', label: 'Light rain'        },
+  63: { emoji: '🌧️', label: 'Rain'              },
+  65: { emoji: '🌧️', label: 'Heavy rain'        },
+  71: { emoji: '❄️',  label: 'Light snow'        },
+  73: { emoji: '❄️',  label: 'Snow'              },
+  75: { emoji: '❄️',  label: 'Heavy snow'        },
+  77: { emoji: '❄️',  label: 'Snow grains'       },
+  80: { emoji: '🌦️', label: 'Light showers'     },
+  81: { emoji: '🌧️', label: 'Showers'           },
+  82: { emoji: '⛈️',  label: 'Heavy showers'     },
+  85: { emoji: '🌨️', label: 'Snow showers'      },
+  86: { emoji: '🌨️', label: 'Heavy snow showers'},
+  95: { emoji: '⛈️',  label: 'Thunderstorm'      },
+  96: { emoji: '⛈️',  label: 'Thunderstorm'      },
+  99: { emoji: '⛈️',  label: 'Thunderstorm'      },
+};
+
+interface WeatherData {
+  temp: number;
+  feelsLike: number;
+  windspeed: number;
+  code: number;
+}
+
+function WeatherWidget() {
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    fetch(
+      'https://api.open-meteo.com/v1/forecast' +
+      '?latitude=53.2588&longitude=-2.1248' +
+      '&current=temperature_2m,apparent_temperature,weathercode,windspeed_10m' +
+      '&timezone=Europe%2FLondon'
+    )
+      .then(r => r.json())
+      .then(d => {
+        const c = d.current;
+        setWeather({
+          temp: c.temperature_2m,
+          feelsLike: c.apparent_temperature,
+          windspeed: c.windspeed_10m,
+          code: c.weathercode,
+        });
+      })
+      .catch(() => setError(true));
+  }, []);
+
+  if (error || !weather) return null;
+
+  const wmo = WMO[weather.code] ?? { emoji: '🌡️', label: 'Unknown' };
+
+  return (
+    <div className="flex items-center gap-3 bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex-shrink-0">
+      <span className="text-4xl leading-none">{wmo.emoji}</span>
+      <div>
+        <p className="text-2xl font-bold text-slate-800 leading-none">
+          {Math.round(weather.temp)}°C
+        </p>
+        <p className="text-xs text-slate-500 mt-0.5">{wmo.label}</p>
+        <p className="text-xs text-slate-400">
+          Feels {Math.round(weather.feelsLike)}°C · {weather.windspeed} km/h · Macclesfield
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Card 3 — Tasks
 // ---------------------------------------------------------------------------
 function ChoresCard() {
   const { profiles } = useProfiles();
@@ -260,7 +535,7 @@ function ChoresCard() {
 
   return (
     <Card>
-      <h2 className="text-lg font-semibold text-slate-700 mb-4">Chores</h2>
+      <h2 className="text-lg font-semibold text-slate-700 mb-4">Tasks</h2>
 
       {loading ? (
         <SkeletonLines count={3} />
@@ -276,7 +551,7 @@ function ChoresCard() {
               {/* Progress summary */}
               <div className="mb-3">
                 <div className="flex justify-between text-xs text-slate-500 mb-1">
-                  <span>{completedCount}/{totalCount} chores done</span>
+                  <span>{completedCount}/{totalCount} tasks done</span>
                   <span>{progressPercent}%</span>
                 </div>
                 <div className="w-full bg-slate-100 rounded-full h-2">
@@ -306,12 +581,11 @@ function ChoresCard() {
         </>
       )}
 
-      {/* Launch Chore Screen — prominent full-width button */}
       <Link
         to="/chores"
         className="mt-5 block text-center text-xl font-bold text-white bg-amber-400 hover:bg-amber-500 rounded-xl py-5 transition-colors shadow-md"
       >
-        ⭐ My Chores
+        ⭐ My Tasks
       </Link>
     </Card>
   );
@@ -327,19 +601,25 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-surface p-6 xl:p-10">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl xl:text-4xl font-bold text-slate-800">
-          {dayName}, {dayDate}
-        </h1>
-        <p className="text-slate-400 text-sm mt-1">Good {timeOfDay}</p>
+      <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-3xl xl:text-4xl font-bold text-slate-800">
+            {dayName}, {dayDate}
+          </h1>
+          <p className="text-slate-400 text-sm mt-1">Good {timeOfDay}</p>
+        </div>
+        <WeatherWidget />
       </div>
 
       {/* Three-column grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 xl:text-base">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 xl:text-base mb-4">
         <EventsCard />
         <MealsCard />
         <ChoresCard />
       </div>
+
+      {/* Routines summary — below the main cards */}
+      <RoutinesStrip />
     </div>
   );
 }

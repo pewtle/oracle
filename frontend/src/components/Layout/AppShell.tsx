@@ -43,7 +43,7 @@ export default function AppShell() {
         )}
 
         {/* Page content — scrollable */}
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-5 lg:p-6">
           <Outlet context={{ calendarView, calendarDate, setCalendarView, setCalendarDate }} />
         </main>
       </div>
@@ -58,11 +58,11 @@ export default function AppShell() {
 // Mobile bottom nav
 // ---------------------------------------------------------------------------
 const mobileNavItems = [
-  { to: '/',         label: 'Today',    emoji: '🏠' },
-  { to: '/chores',   label: 'Chores',   emoji: '⭐' },
-  { to: '/calendar', label: 'Calendar', emoji: '📅' },
-  { to: '/tasks',    label: 'Tasks',    emoji: '✅' },
-  { to: '/recipes',  label: 'Recipes',  emoji: '🍳' },
+  { to: '/',          label: 'Today',    emoji: '🏠' },
+  { to: '/routines',  label: 'Routines', emoji: '🌟' },
+  { to: '/calendar',  label: 'Calendar', emoji: '📅' },
+  { to: '/tasks',     label: 'Tasks',    emoji: '✅' },
+  { to: '/recipes',   label: 'Recipes',  emoji: '🍳' },
 ];
 
 function MobileBottomNav() {
